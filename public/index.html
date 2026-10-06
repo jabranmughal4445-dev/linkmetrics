@@ -1,0 +1,1654 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>LinkMetrics by Asma Amir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* =========================================================================
+   LAYOUT CONCEPT: brand bar, tagline hero, then a form column beside a results
+   column. The signature moment is the insertion preview, which shows the real
+   paragraph with the anchor highlighted like a marker pen. The theme drawer
+   slides in from the right (bottom sheet on phones).
+   ========================================================================= */
+
+/* ---------- 1. DESIGN TOKENS ---------- */
+:root {
+  /* Customizable brand colors (light defaults = Midnight preset) */
+  --primary: #3B4FD9;
+  --secondary: #5A6786;
+  --accent: #E08A00;
+  --bg: #F4F5FA;
+  --card: #FFFFFF;
+  --text: #131A33;
+  --border: #DDE1EE;
+  --btn: #3B4FD9;
+  --btn-text: #FFFFFF;
+
+  /* Semantic status colors (not user-customizable) */
+  --ok: #138A52;
+  --warn: #A86300;
+  --bad: #C2352F;
+
+  /* Derived tokens: recalculated automatically when the colors above change */
+  --muted: color-mix(in srgb, var(--text) 64%, var(--card));
+  --soft: color-mix(in srgb, var(--text) 4.5%, var(--card));
+  --primary-soft: color-mix(in srgb, var(--primary) 12%, var(--card));
+  --accent-soft: color-mix(in srgb, var(--accent) 26%, var(--card));
+  --ring: color-mix(in srgb, var(--primary) 38%, transparent);
+  --scrim: rgba(10, 14, 30, .55);
+
+  --shadow-sm: 0 1px 2px rgba(19, 26, 51, .05), 0 4px 14px -6px rgba(19, 26, 51, .08);
+  --shadow-lg: 0 24px 60px -20px rgba(19, 26, 51, .35);
+
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --t: 160ms ease;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --primary: #7C8CFF; --secondary: #9AA7C7; --accent: #FFB547;
+    --bg: #0A0F1F; --card: #111830; --text: #E8ECF8; --border: #243050;
+    --btn: #7C8CFF; --btn-text: #0A0F1F;
+    --ok: #3DDC97; --warn: #FFBF47; --bad: #FF7A73;
+    --scrim: rgba(2, 4, 12, .7);
+    --shadow-sm: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 8px 24px -14px rgba(0, 0, 0, .7);
+    --shadow-lg: 0 30px 70px -20px rgba(0, 0, 0, .8);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --primary: #7C8CFF; --secondary: #9AA7C7; --accent: #FFB547;
+  --bg: #0A0F1F; --card: #111830; --text: #E8ECF8; --border: #243050;
+  --btn: #7C8CFF; --btn-text: #0A0F1F;
+  --ok: #3DDC97; --warn: #FFBF47; --bad: #FF7A73;
+  --scrim: rgba(2, 4, 12, .7);
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 8px 24px -14px rgba(0, 0, 0, .7);
+  --shadow-lg: 0 30px 70px -20px rgba(0, 0, 0, .8);
+  color-scheme: dark;
+}
+
+/* ---------- 2. BASE ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html.lock { overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color var(--t), color var(--t);
+}
+h1, h2, h3, h4 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+p, ul, dl, dd { margin: 0; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--primary); }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+.ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ic.sm { width: 15px; height: 15px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.shell { max-width: 1240px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 28px; }
+
+/* ---------- 3. BUTTONS ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 42px; padding: 0 16px; border-radius: 11px; border: 1px solid transparent;
+  background: var(--btn); color: var(--btn-text); font-weight: 600; font-size: 14.5px; line-height: 1;
+  transition: background-color var(--t), border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+.btn:hover { background: color-mix(in srgb, var(--btn) 86%, var(--text)); }
+.btn:active { transform: translateY(1px); }
+.btn.ghost { background: transparent; color: var(--text); border-color: var(--border); }
+.btn.ghost:hover { background: var(--soft); border-color: color-mix(in srgb, var(--border) 60%, var(--text)); }
+.btn.sm { min-height: 34px; padding: 0 12px; font-size: 13px; border-radius: 9px; }
+.btn.block { width: 100%; }
+.btn.icon { width: 42px; padding: 0; }
+.link-btn { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border); }
+.link-btn:hover { color: var(--primary); text-decoration-color: currentColor; }
+
+/* ---------- 4. HEADER + HERO ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 18px; border-bottom: 1px solid var(--border); }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo { width: 42px; height: 42px; flex: none; }
+.logo .l-bg { fill: var(--btn); }
+.logo .l-link { fill: none; stroke: var(--btn-text); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.logo .l-caret { fill: var(--accent); }
+.brand-name { display: block; font: 700 22px/1 var(--font-display); letter-spacing: -.025em; }
+.brand-by { display: block; margin-top: 6px; font-size: 11px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+.actions { display: flex; align-items: center; gap: 8px; flex: none; }
+
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: end; padding-block: 44px 32px; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--primary); }
+.tagline { margin-top: 12px; max-width: 20ch; font-weight: 700; font-size: clamp(33px, 5.4vw, 58px); line-height: 1.03; letter-spacing: -.03em; }
+.hl { background-image: linear-gradient(var(--accent-soft), var(--accent-soft)); background-repeat: no-repeat; background-size: 100% 40%; background-position: 0 90%; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.lede { margin-top: 16px; max-width: 58ch; font-size: 17px; color: var(--muted); }
+.facts { display: grid; gap: 10px; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
+.facts li { display: flex; align-items: center; gap: 9px; }
+.facts .ic { color: var(--primary); }
+
+/* ---------- 5. WORKSPACE ---------- */
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); min-width: 0; }
+.input-panel { padding: 22px; }
+.panel-title { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+.panel-title .ic { color: var(--primary); }
+.panel-sub { margin-top: 6px; font-size: 13.5px; color: var(--muted); }
+form { display: grid; gap: 18px; margin-top: 20px; }
+.field { display: grid; gap: 7px; min-width: 0; }
+.field > label, .field > .lbl { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13.5px; font-weight: 600; }
+.opt { font-size: 12px; font-weight: 500; color: var(--muted); }
+.input {
+  width: 100%; min-height: 44px; padding: 10px 13px; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 11px; outline: none;
+  transition: border-color var(--t), box-shadow var(--t), background-color var(--t);
+}
+.input::placeholder { color: color-mix(in srgb, var(--text) 42%, var(--bg)); }
+.input:hover { border-color: color-mix(in srgb, var(--border) 55%, var(--text)); }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
+textarea.input { min-height: 190px; resize: vertical; line-height: 1.55; }
+.has-error .input, .input[aria-invalid="true"] { border-color: var(--bad); }
+.has-error .input:focus, .input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 30%, transparent); }
+.hint { font-size: 12.5px; color: var(--muted); }
+.err { display: none; align-items: flex-start; gap: 6px; font-size: 12.8px; font-weight: 500; color: var(--bad); }
+.has-error .err { display: flex; }
+.err .ic { margin-top: 2px; }
+.or-divider { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.or-divider::before, .or-divider::after { content: ""; height: 1px; flex: 1; background: var(--border); }
+.form-actions { display: grid; gap: 10px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.privacy-note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--muted); }
+.privacy-note .ic { margin-top: 2px; color: var(--primary); }
+.meta-line { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.mono { font-family: var(--font-mono); }
+
+/* ---------- 6. RESULTS ---------- */
+.results { display: grid; gap: 16px; min-width: 0; }
+.results.fade > * { animation: rise .28s ease both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+.res-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.res-head h2 { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.res-head .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--soft); color: var(--muted); }
+.chip.ex { background: var(--accent-soft); border-color: transparent; color: var(--text); }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: 20px; min-width: 0; }
+.card-title { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.card-title .ic { color: var(--primary); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+/* Recommendation */
+.rec { --tier: var(--primary); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; align-items: center; padding: 24px; background: color-mix(in srgb, var(--tier) 7%, var(--card)); border-color: color-mix(in srgb, var(--tier) 45%, var(--border)); }
+.tier-strong { --tier: var(--ok); }
+.tier-good { --tier: var(--primary); }
+.tier-possible { --tier: var(--warn); }
+.tier-weak { --tier: var(--bad); }
+.tier-limited { --tier: var(--secondary); }
+.ring { --c: 339.3; position: relative; width: 138px; height: 138px; }
+.ring svg { width: 100%; height: 100%; display: block; }
+.ring-bg { fill: none; stroke: color-mix(in srgb, var(--tier) 18%, var(--border)); stroke-width: 10; }
+.ring-fg { fill: none; stroke: var(--tier); stroke-width: 10; stroke-linecap: round; animation: ring .9s ease-out; }
+@keyframes ring { from { stroke-dashoffset: var(--c); } }
+.ring-num { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring-num strong { font: 700 40px/1 var(--font-display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.ring-num span { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, var(--tier) 16%, var(--card)); color: color-mix(in srgb, var(--tier) 78%, var(--text)); }
+.rec h3 { margin-top: 12px; font-size: clamp(20px, 2.6vw, 26px); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.rec .sum { margin-top: 8px; color: var(--muted); max-width: 62ch; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.stat { padding: 10px 12px; border-radius: 11px; background: color-mix(in srgb, var(--tier) 6%, var(--card)); border: 1px solid color-mix(in srgb, var(--tier) 20%, var(--border)); min-width: 0; }
+.stat b { display: block; font: 700 19px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat span { display: block; margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+
+/* Notes */
+.notes { display: grid; gap: 8px; }
+.note { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; border-radius: 12px; font-size: 13.5px; border: 1px solid var(--border); background: var(--card); }
+.note.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); background: color-mix(in srgb, var(--warn) 9%, var(--card)); }
+.note.warn .ic { color: var(--warn); }
+.note.info .ic { color: var(--primary); }
+.note .ic { margin-top: 2px; }
+
+/* Insertion preview */
+.card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.card-top .card-title { margin: 0; }
+.paper { background: var(--bg); border: 1px solid var(--border); border-radius: 13px; padding: 18px 20px; }
+.paper-sec { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.paper-text { font-size: 16.5px; line-height: 1.75; max-width: 70ch; overflow-wrap: anywhere; }
+mark.anchor { background: var(--accent-soft); color: inherit; padding: 1px 4px; border-radius: 4px; font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+.ins { background: var(--primary-soft); border-radius: 6px; padding: 2px 5px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.sw.a { background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }
+.sw.i { background: var(--primary-soft); }
+.how { margin-top: 14px; font-size: 14px; }
+.how b { font-weight: 600; }
+.code-row { display: flex; gap: 8px; align-items: stretch; margin-top: 14px; }
+.code { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; background: var(--soft); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; overflow-x: auto; white-space: pre; }
+
+/* Detail cards */
+.kv { display: grid; gap: 0; }
+.kv > div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 14px; }
+.kv > div:last-child { border-bottom: 0; padding-bottom: 0; }
+.kv dt { color: var(--muted); }
+.kv dd { font-weight: 500; overflow-wrap: anywhere; }
+.meter { height: 8px; border-radius: 999px; background: var(--soft); border: 1px solid var(--border); overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 999px; background: var(--tier, var(--primary)); }
+.meter-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+.meter-row b { font: 700 24px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 8px; font-size: 12.5px; font-weight: 500; background: var(--primary-soft); color: var(--text); }
+.tag.miss { background: transparent; border: 1px dashed color-mix(in srgb, var(--bad) 55%, var(--border)); color: var(--muted); }
+.tag.ctx { background: var(--soft); border: 1px solid var(--border); }
+.tag .ic { width: 13px; height: 13px; }
+.tag:not(.miss):not(.ctx) .ic { color: var(--ok); }
+.tag.miss .ic { color: var(--bad); }
+.small-label { margin-top: 14px; font-size: 12px; font-weight: 600; color: var(--muted); }
+
+.anchor-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); }
+.anchor-main strong { font: 600 18px/1.3 var(--font-display); overflow-wrap: anywhere; }
+.type { display: inline-block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.why { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+.alts { display: grid; gap: 0; margin-top: 12px; }
+.alt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--border); font-size: 13.5px; }
+.alt div { min-width: 0; }
+.alt b { font-weight: 600; overflow-wrap: anywhere; }
+.alt .type { display: block; margin: 0 0 1px; }
+.copy { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; border-radius: 9px; border: 1px solid var(--border); background: var(--card); color: var(--muted); transition: background-color var(--t), color var(--t); }
+.copy:hover { background: var(--soft); color: var(--primary); }
+
+.reasons { display: grid; gap: 10px; padding: 0; list-style: none; }
+.reasons li { display: flex; gap: 11px; align-items: flex-start; font-size: 14.5px; }
+.reasons .ic { color: var(--ok); margin-top: 3px; }
+.runners { display: grid; gap: 0; }
+.runner { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 12px 0; border-top: 1px dashed var(--border); }
+.runner:first-child { border-top: 0; padding-top: 0; }
+.runner p { font-size: 13.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 3px; }
+.runner b { font-size: 14px; font-weight: 600; }
+.runner .sc { font: 700 15px var(--font-display); padding: 3px 10px; border-radius: 8px; background: var(--soft); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.disclaimer { font-size: 12.5px; color: var(--muted); text-align: center; padding-inline: 8px; }
+
+/* Empty state */
+.empty { display: grid; justify-items: center; text-align: center; gap: 12px; padding: 44px 24px; }
+.empty svg.art { width: min(260px, 100%); height: auto; }
+.empty .l-line { fill: var(--border); }
+.empty .l-hi { fill: var(--accent-soft); }
+.empty .l-hi-bar { fill: var(--accent); }
+.empty .l-chip { fill: var(--btn); }
+.empty .l-chip-i { fill: none; stroke: var(--btn-text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.empty h2 { font-size: 22px; font-weight: 700; letter-spacing: -.015em; }
+.empty p { max-width: 46ch; color: var(--muted); }
+.empty ul { display: grid; gap: 8px; margin: 8px 0 0; padding: 0; list-style: none; text-align: left; font-size: 14px; }
+.empty li { display: flex; gap: 9px; align-items: center; }
+.empty li .ic { color: var(--primary); }
+
+/* ---------- 7. FOOTER ---------- */
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+.foot nav { display: flex; gap: 18px; flex-wrap: wrap; }
+.foot .mini { display: flex; align-items: center; gap: 8px; }
+.foot .mini .logo { width: 24px; height: 24px; }
+.foot-note { flex-basis: 100%; font-size: 12.5px; }
+
+/* ---------- 8. OVERLAYS: THEME DRAWER + MODALS ---------- */
+.overlay { position: fixed; inset: 0; z-index: 50; visibility: hidden; opacity: 0; transition: opacity .18s ease, visibility 0s linear .18s; }
+.overlay.open { visibility: visible; opacity: 1; transition: opacity .18s ease; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(430px, 100%); display: flex; flex-direction: column; background: var(--card); border-left: 1px solid var(--border); box-shadow: var(--shadow-lg); transform: translateX(28px); transition: transform .22s ease; padding-top: env(safe-area-inset-top, 0px); }
+.overlay.open .drawer { transform: none; }
+.ov-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.ov-head h2 { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+.ov-body { flex: 1; overflow-y: auto; padding: 20px; display: grid; gap: 26px; align-content: start; }
+.ov-foot { display: flex; gap: 10px; padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); }
+.ov-foot .btn { flex: 1; }
+.sec-label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--soft); border: 1px solid var(--border); border-radius: 13px; }
+.seg button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; border: 1px solid transparent; border-radius: 10px; background: transparent; font-weight: 600; font-size: 14px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--text); border-color: var(--border); box-shadow: var(--shadow-sm); }
+.presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.preset { display: grid; gap: 8px; padding: 8px; border-radius: 13px; border: 1px solid var(--border); background: var(--card); text-align: left; transition: border-color var(--t), box-shadow var(--t); }
+.preset:hover { border-color: color-mix(in srgb, var(--border) 50%, var(--text)); }
+.preset[aria-pressed="true"] { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
+.pv { display: grid; gap: 6px; padding: 8px; border-radius: 8px; border: 1px solid rgba(128, 128, 128, .25); height: 54px; align-content: center; }
+.pv i { display: block; height: 14px; border-radius: 5px; }
+.pv .dots { display: flex; gap: 4px; }
+.pv .dots b { width: 11px; height: 11px; border-radius: 50%; display: block; }
+.preset span { font-size: 13px; font-weight: 600; padding-inline: 2px; }
+.crow { display: grid; grid-template-columns: minmax(0, 1fr) auto 98px; gap: 10px; align-items: center; }
+.crow label { font-size: 14px; }
+.crow input[type="color"] { width: 40px; height: 36px; padding: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; }
+.crow .input { min-height: 36px; padding: 6px 9px; font-family: var(--font-mono); font-size: 13px; text-transform: uppercase; }
+.colors { display: grid; gap: 10px; }
+.cnote { margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+
+.overlay.center { display: grid; place-items: center; padding: 16px; }
+.modal { position: relative; width: min(680px, 100%); max-height: min(86dvh, 760px); display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow-lg); transform: translateY(12px); transition: transform .2s ease; }
+.overlay.open .modal { transform: none; }
+.prose { overflow-y: auto; padding: 20px 24px 26px; display: grid; gap: 18px; font-size: 14.5px; }
+.prose h3 { font-size: 15.5px; font-weight: 700; margin-bottom: 4px; }
+.prose p, .prose li { color: color-mix(in srgb, var(--text) 82%, var(--card)); }
+.prose ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.prose .stamp { font-size: 12.5px; color: var(--muted); }
+
+.toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); z-index: 80; display: flex; align-items: center; gap: 9px; max-width: calc(100% - 32px); padding: 11px 16px; border-radius: 12px; background: var(--text); color: var(--bg); font-size: 14px; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none; transform: translate(-50%, 14px); transition: opacity .18s ease, transform .18s ease; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.err .ic { color: var(--bad); }
+.toast.ok .ic { color: var(--ok); }
+
+/* ---------- 9. RESPONSIVE ---------- */
+@media (min-width: 1000px) {
+  .workspace { grid-template-columns: minmax(340px, 410px) minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 32px 24px; }
+  .facts { grid-auto-flow: row; }
+}
+@media (max-width: 760px) {
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .rec { grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 18px; padding: 20px; }
+  .drawer { top: auto; left: 0; width: 100%; max-height: 90dvh; border-left: 0; border-top: 1px solid var(--border); border-radius: 20px 20px 0 0; transform: translateY(28px); padding-top: 0; }
+  .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .code-row { flex-direction: column; }
+  .kv > div { grid-template-columns: 96px minmax(0, 1fr); }
+  .btn .lbl-hide { display: none; }
+  .btn.theme-btn { width: 42px; padding: 0; }
+  .input-panel, .card { padding: 18px; }
+  .paper { padding: 14px 15px; }
+}
+@media (max-width: 420px) {
+  .stats { grid-template-columns: minmax(0, 1fr); }
+  .stat { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .stat span { margin: 0; }
+  .row2 { grid-template-columns: minmax(0, 1fr); }
+  .brand-name { font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<!-- =====================================================================
+     HTML STRUCTURE
+     ===================================================================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.8-.5-1.2-.3-.4-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r=".6"/><circle cx="10" cy="7" r=".6"/><circle cx="15" cy="7" r=".6"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.5-4.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></symbol>
+    <symbol id="i-para" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h11"/></symbol>
+    <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9V3"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  </defs>
+</svg>
+
+<noscript><p style="padding:24px;font-family:sans-serif">LinkMetrics needs JavaScript to analyze articles.</p></noscript>
+
+<div class="shell">
+
+  <!-- Brand header -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 42 42" role="img" aria-label="LinkMetrics logo">
+        <rect class="l-bg" width="42" height="42" rx="12"/>
+        <g transform="translate(-1.5 -1.5) scale(1.05)">
+          <path class="l-link" d="M17.5 24.5a5 5 0 0 0 7 .4l3.7-3.7a5 5 0 0 0-7.1-7.1l-1.1 1.1"/>
+          <path class="l-link" d="M23.5 18.5a5 5 0 0 0-7-.4l-3.7 3.7a5 5 0 0 0 7.1 7.1l1.1-1.1"/>
+        </g>
+        <rect class="l-caret" x="31" y="26" width="3" height="10" rx="1.5"/>
+      </svg>
+      <div>
+        <span class="brand-name">LinkMetrics</span>
+        <span class="brand-by">by Asma Amir</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn ghost theme-btn" id="btnTheme" aria-haspopup="dialog" aria-label="Open theme settings">
+        <svg class="ic"><use href="#i-palette"/></svg><span class="lbl-hide">Theme</span>
+      </button>
+      <button type="button" class="btn ghost icon" id="btnMode" aria-pressed="false" aria-label="Switch to dark mode" title="Dark / light mode">
+        <svg class="ic" id="modeIcon"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="tagline">
+    <div>
+      <div class="eyebrow">Link insertion finder</div>
+      <h1 class="tagline" id="tagline">Find the <span class="hl">Perfect Place</span> for Your Backlink.</h1>
+      <p class="lede">Enter the page where you want a link, your anchor text and the URL it should point to. LinkMetrics reads the page and shows which paragraph can carry the link and how to work it in so it reads naturally.</p>
+    </div>
+    <ul class="facts" aria-label="Key facts">
+      <li><svg class="ic sm"><use href="#i-check"/></svg>Analysis runs in your browser</li>
+      <li><svg class="ic sm"><use href="#i-check"/></svg>No account or API key needed</li>
+      <li><svg class="ic sm"><use href="#i-check"/></svg>Reads the real page, never invents results</li>
+    </ul>
+  </section>
+
+  <main class="workspace">
+
+    <!-- Input -->
+    <section class="panel input-panel" aria-labelledby="form-title">
+      <h2 class="panel-title" id="form-title"><svg class="ic"><use href="#i-link"/></svg>Link opportunity</h2>
+      <p class="panel-sub">Fill in the three parts below.</p>
+
+      <form id="finder" novalidate autocomplete="off">
+        <div class="field" id="f-website">
+          <label for="websiteUrl">Website URL</label>
+          <input class="input" id="websiteUrl" name="websiteUrl" type="text" inputmode="url" spellcheck="false" placeholder="https://publisher.com/article-url" aria-describedby="err-website hint-website">
+          <span class="hint" id="hint-website">The page is fetched for you and read here. Pages that block automated access cannot be analyzed.</span>
+          <div class="err" id="err-website" role="alert"><svg class="ic sm"><use href="#i-alert"/></svg><span></span></div>
+        </div>
+
+        <div class="field" id="f-anchor">
+          <label for="anchorText">Anchor text</label>
+          <input class="input" id="anchorText" name="anchorText" type="text" spellcheck="false" placeholder="e.g. electric bike for commuting" aria-describedby="err-anchor">
+          <div class="err" id="err-anchor" role="alert"><svg class="ic sm"><use href="#i-alert"/></svg><span></span></div>
+        </div>
+
+        <div class="field" id="f-target">
+          <label for="targetUrl">Target URL</label>
+          <input class="input" id="targetUrl" name="targetUrl" type="text" inputmode="url" spellcheck="false" placeholder="https://client-site.com/page-to-promote" aria-describedby="err-target">
+          <div class="err" id="err-target" role="alert"><svg class="ic sm"><use href="#i-alert"/></svg><span></span></div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn block" id="btnRun"><svg class="ic"><use href="#i-search"/></svg>Find placement</button>
+          <div class="row2" style="grid-template-columns:minmax(0,1fr)">
+            <button type="button" class="btn ghost" id="btnClear"><svg class="ic"><use href="#i-x"/></svg>Clear</button>
+          </div>
+        </div>
+        <p class="privacy-note"><svg class="ic sm"><use href="#i-info"/></svg><span>Your inputs are analyzed in your browser. Only the website URL is sent, to fetch that page.</span></p>
+      </form>
+    </section>
+
+    <!-- Results -->
+    <section class="results" id="results" aria-label="Analysis results"></section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="foot">
+    <div class="mini">
+      <svg class="logo" viewBox="0 0 42 42" aria-hidden="true">
+        <rect class="l-bg" width="42" height="42" rx="12"/>
+        <g transform="translate(-1.5 -1.5) scale(1.05)">
+          <path class="l-link" d="M17.5 24.5a5 5 0 0 0 7 .4l3.7-3.7a5 5 0 0 0-7.1-7.1l-1.1 1.1"/>
+          <path class="l-link" d="M23.5 18.5a5 5 0 0 0-7-.4l-3.7 3.7a5 5 0 0 0 7.1 7.1l1.1-1.1"/>
+        </g>
+        <rect class="l-caret" x="31" y="26" width="3" height="10" rx="1.5"/>
+      </svg>
+      <span>LinkMetrics by Asma Amir &middot; &copy; 2026</span>
+    </div>
+    <nav aria-label="Legal">
+      <button type="button" class="link-btn" data-open="ov-privacy">Privacy Policy</button>
+      <button type="button" class="link-btn" data-open="ov-terms">Terms of Use</button>
+    </nav>
+    <p class="foot-note">Placement suggestions are recommendations. Review each one before you use it.</p>
+  </footer>
+</div>
+
+<!-- Theme drawer -->
+<div class="overlay" id="ov-theme" aria-hidden="true">
+  <div class="scrim" data-close></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="theme-title" tabindex="-1">
+    <div class="ov-head">
+      <h2 id="theme-title">Theme &amp; customize</h2>
+      <button type="button" class="btn ghost icon sm" data-close aria-label="Close theme settings"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="ov-body">
+      <div>
+        <div class="sec-label">Mode</div>
+        <div class="seg" id="modeSeg" role="group" aria-label="Color mode">
+          <button type="button" data-mode="light" aria-pressed="false"><svg class="ic"><use href="#i-sun"/></svg>Light</button>
+          <button type="button" data-mode="dark" aria-pressed="false"><svg class="ic"><use href="#i-moon"/></svg>Dark</button>
+        </div>
+      </div>
+      <div>
+        <div class="sec-label">Preset themes</div>
+        <div class="presets" id="presets" role="group" aria-label="Preset themes"></div>
+      </div>
+      <div>
+        <div class="sec-label">Colors</div>
+        <div class="colors" id="colorRows"></div>
+        <p class="cnote">Changing any color switches to Custom. Custom colors are kept separately for light and dark mode, and your choices are remembered in this browser.</p>
+      </div>
+    </div>
+    <div class="ov-foot">
+      <button type="button" class="btn ghost" id="btnReset"><svg class="ic"><use href="#i-reset"/></svg>Reset Theme</button>
+      <button type="button" class="btn" data-close data-autofocus>Done</button>
+    </div>
+  </aside>
+</div>
+
+<!-- Privacy modal -->
+<div class="overlay center" id="ov-privacy" aria-hidden="true">
+  <div class="scrim" data-close></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="privacy-title" tabindex="-1">
+    <div class="ov-head">
+      <h2 id="privacy-title">Privacy Policy</h2>
+      <button type="button" class="btn ghost icon sm" data-close aria-label="Close privacy policy"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="prose">
+      <p class="stamp">Last updated 5 October 2026. This is a plain-language summary of how this page behaves. It is not legal advice.</p>
+      <div>
+        <h3>What you enter</h3>
+        <p>You can enter a website URL, anchor text and a target URL. These are used only to produce the analysis you see on screen.</p>
+      </div>
+      <div>
+        <h3>Where processing happens</h3>
+        <p>The analysis runs in your browser, using the JavaScript on this page. The page's code does not send what you enter to a server and does not call an analysis service. When you run an analysis, the website URL you entered is sent to this site's free fetch function, which requests that page from its website and returns the text. That site can see the request. Nothing is stored. If the page cannot be fetched, no result is produced. Your input and results are not saved, so they disappear when you refresh or close the page.</p>
+      </div>
+      <div>
+        <h3>What is saved on your device</h3>
+        <p>Only your appearance choices are saved, using your browser's local storage: light or dark mode, the selected preset and any custom colors. You can remove them with Reset Theme or by clearing this site's data in your browser.</p>
+      </div>
+      <div>
+        <h3>Clipboard</h3>
+        <p>The copy buttons write to your clipboard only when you click them. The page never reads your clipboard.</p>
+      </div>
+      <div>
+        <h3>Requests made by your browser</h3>
+        <ul>
+          <li>The page's fonts are loaded from Google Fonts. As with any font request, the font provider can see standard request details such as your IP address and browser type.</li>
+          <li>The server that delivers this page can likewise see standard request details. Neither of these includes the text you enter into the tool. The website URL you enter is requested from that website only.</li>
+          <li>The page's own code does not set cookies and does not include analytics or advertising scripts.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Your care with content</h3>
+        <p>What you enter stays in your browser tab, but avoid entering confidential URLs on a shared or public computer, because your browser may retain them.</p>
+      </div>
+      <div>
+        <h3>Changes</h3>
+        <p>If the way this page handles information changes, this policy will be updated and the date above will change.</p>
+      </div>
+    </div>
+    <div class="ov-foot"><button type="button" class="btn" data-close data-autofocus>Close</button></div>
+  </div>
+</div>
+
+<!-- Terms modal -->
+<div class="overlay center" id="ov-terms" aria-hidden="true">
+  <div class="scrim" data-close></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="terms-title" tabindex="-1">
+    <div class="ov-head">
+      <h2 id="terms-title">Terms of Use</h2>
+      <button type="button" class="btn ghost icon sm" data-close aria-label="Close terms of use"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="prose">
+      <p class="stamp">Last updated 5 October 2026. By using LinkMetrics you agree to these terms.</p>
+      <div>
+        <h3>What the tool does</h3>
+        <p>LinkMetrics by Asma Amir reads the web page you enter and suggests where a link with your anchor text and target URL could fit most naturally and how to place it.</p>
+      </div>
+      <div>
+        <h3>Suggestions are recommendations</h3>
+        <p>Scores, placements and anchor text are estimates produced by simple text-matching rules applied to the content you provide. They are suggestions, not decisions. Review every suggestion yourself before you use it, and judge whether the link is genuinely useful to the reader. Nothing here guarantees that a link will be accepted by a site owner, valued by a search engine or lead to any ranking or traffic result.</p>
+      </div>
+      <div>
+        <h3>Your responsibilities</h3>
+        <ul>
+          <li>Get permission from the site owner or editor before adding or requesting a link in their content.</li>
+          <li>Follow the policies of the site where the link will appear and the guidelines of the search engines you care about.</li>
+          <li>Mark paid or sponsored links with the appropriate link attributes and disclosures where required.</li>
+          <li>Do not use the tool to create deceptive, spammy or manipulative placements.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Quality of results</h3>
+        <p>Results depend on the text the page returns to your browser. Pages that block automated access, or that load their text with JavaScript, cannot be analyzed, and no result is given for them.</p>
+      </div>
+      <div>
+        <h3>No professional advice</h3>
+        <p>The tool does not provide legal, marketing or search engine optimization advice.</p>
+      </div>
+      <div>
+        <h3>Provided as is</h3>
+        <p>LinkMetrics is provided as is, without warranties of any kind. To the extent the law allows, its author is not liable for outcomes that follow from using the suggestions.</p>
+      </div>
+      <div>
+        <h3>Changes</h3>
+        <p>These terms may be updated. The date above shows the latest version.</p>
+      </div>
+    </div>
+    <div class="ov-foot"><button type="button" class="btn" data-close data-autofocus>Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr-only" id="live" role="status" aria-live="polite"></div>
+
+<!-- =====================================================================
+     JAVASCRIPT
+     1. Utilities  2. Analysis engine  3. Theme system  4. Overlays
+     5. Rendering  6. Form + wiring
+     ===================================================================== -->
+<script>
+(function () {
+'use strict';
+
+/* ---------- 1. UTILITIES ---------- */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const icon = (n, cls) => '<svg class="ic ' + (cls || '') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>';
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* storage unavailable */ } }
+};
+const reducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- 2. ANALYSIS ENGINE ---------- */
+/* ENGINE:START */
+const STOP = new Set(('a an the and or but if then else of to in on at by for with from as is are was were be been being it its this that these those ' +
+  'i you he she we they them his her our your their my me us not no yes do does did done have has had having can could should would will shall may might must ' +
+  'about into over under again further once here there when where why how all any both each few more most other some such only own same so than too very just also ' +
+  'via per vs etc what which who whom while during before after above below up down out off').split(' '));
+const CONN = new Set(['for', 'to', 'of', 'in', 'on', 'with', 'and', 'at']);
+const MAX_CHARS = 60000;
+
+function normalizeUrl(v) {
+  v = String(v || '').trim();
+  if (!v || /\s/.test(v)) return null;
+  const u = /^https?:\/\//i.test(v) ? v : 'https://' + v;
+  try {
+    const x = new URL(u);
+    if (!/^https?:$/.test(x.protocol)) return null;
+    if (!x.hostname.includes('.') || x.hostname.endsWith('.')) return null;
+    return x;
+  } catch (e) { return null; }
+}
+
+function stem(w) {
+  w = String(w).toLowerCase();
+  if (/[^a-z0-9]/.test(w) || w.length <= 3) return w;
+  const rules = [['ies', 'y'], ['ing', ''], ['ers', ''], ['er', ''], ['ed', ''], ['es', ''], ['ly', ''], ['s', ''], ['e', '']];
+  for (const r of rules) {
+    const suf = r[0], rep = r[1];
+    if (w.endsWith(suf) && !(suf === 's' && w.endsWith('ss')) && w.length - suf.length + rep.length >= 3) {
+      return w.slice(0, w.length - suf.length) + rep;
+    }
+  }
+  return w;
+}
+
+function tokenize(text) {
+  const out = [];
+  const re = /[\p{L}\p{N}]+/gu;
+  let m;
+  while ((m = re.exec(text))) out.push({ w: m[0].toLowerCase(), start: m.index, end: m.index + m[0].length });
+  return out;
+}
+
+function wordCount(text) {
+  const t = String(text).trim();
+  return t ? t.split(/\s+/).length : 0;
+}
+
+function parseKeyword(raw) {
+  const toks = tokenize(raw);
+  const display = {};
+  let terms = [];
+  toks.forEach(t => {
+    if (STOP.has(t.w) || t.w.length < 2) return;
+    const s = stem(t.w);
+    if (!terms.includes(s)) { terms.push(s); display[s] = t.w; }
+  });
+  if (!terms.length) {
+    toks.forEach(t => { const s = stem(t.w); if (!terms.includes(s)) { terms.push(s); display[s] = t.w; } });
+  }
+  return { raw: String(raw).trim(), terms, display, phrase: toks.map(t => t.w).join(' '), tokenCount: toks.length };
+}
+
+function urlTerms(u, maxSegments) {
+  if (!u) return [];
+  let path = u.pathname || '';
+  try { path = decodeURIComponent(path); } catch (e) { /* keep raw path */ }
+  const segs = path.split('/').filter(Boolean).slice(-(maxSegments || 3));
+  const out = [];
+  segs.forEach(seg => {
+    tokenize(seg.replace(/\.[a-z0-9]{2,5}$/i, '')).forEach(t => {
+      if (STOP.has(t.w) || t.w.length < 3 || /^\d+$/.test(t.w)) return;
+      const s = stem(t.w);
+      if (!out.some(o => o.stem === s)) out.push({ stem: s, word: t.w });
+    });
+  });
+  return out;
+}
+
+function brandFrom(host) {
+  const parts = String(host).replace(/^www\./, '').split('.');
+  let label = parts[0];
+  if (parts.length >= 3 && ['co', 'com', 'org', 'net', 'gov', 'edu', 'ac'].includes(parts[parts.length - 2])) label = parts[parts.length - 3];
+  else if (parts.length >= 2) label = parts[parts.length - 2];
+  return label.split('-').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function titleCase(s) { return s.replace(/\b[a-z]/g, c => c.toUpperCase()); }
+
+function sentences(text) {
+  const out = [];
+  const re = /[^.!?]*[.!?]+["'”’)\]]*(?:\s+|$)|[^.!?]+$/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const raw = m[0];
+    if (!raw.length) { re.lastIndex++; continue; }
+    const lead = raw.length - raw.replace(/^\s+/, '').length;
+    const trimmed = raw.trim();
+    if (trimmed) out.push({ text: trimmed, start: m.index + lead, end: m.index + lead + trimmed.length });
+  }
+  return out.length ? out : [{ text: text.trim(), start: 0, end: text.length }];
+}
+
+function chunkText(text) {
+  if (wordCount(text) <= 170) return [text];
+  const out = []; let cur = '';
+  sentences(text).forEach(s => {
+    cur += (cur ? ' ' : '') + s.text;
+    if (wordCount(cur) >= 80) { out.push(cur); cur = ''; }
+  });
+  if (cur) { if (out.length && wordCount(cur) < 25) out[out.length - 1] += ' ' + cur; else out.push(cur); }
+  return out;
+}
+
+function buildPara(text, heading, hasLink) {
+  const toks = tokenize(text);
+  const stems = toks.map(t => stem(t.w));
+  return {
+    text, heading, hasLink, toks, stems, stemSet: new Set(stems),
+    norm: toks.map(t => t.w).join(' '), wc: wordCount(text), wcBefore: 0
+  };
+}
+
+function proximity(stems, present) {
+  const need = new Set(present);
+  if (need.size === 0) return 0;
+  if (need.size === 1) return 0.6;
+  const counts = new Map();
+  let have = 0, best = Infinity, l = 0;
+  for (let r = 0; r < stems.length; r++) {
+    const s = stems[r];
+    if (need.has(s)) { counts.set(s, (counts.get(s) || 0) + 1); if (counts.get(s) === 1) have++; }
+    while (have === need.size) {
+      best = Math.min(best, r - l + 1);
+      const ls = stems[l];
+      if (need.has(ls)) { counts.set(ls, counts.get(ls) - 1); if (counts.get(ls) === 0) have--; }
+      l++;
+    }
+  }
+  return isFinite(best) ? Math.min(1, need.size * 1.6 / best) : 0;
+}
+
+function scoreParas(art, kw, ctx, targetHost) {
+  const total = art.paras.length;
+  art.paras.forEach((p, i) => {
+    const present = kw.terms.filter(t => p.stemSet.has(t));
+    const kwCov = present.length / kw.terms.length;
+    const prox = proximity(p.stems, present);
+    const phrase = kw.phrase && (' ' + p.norm + ' ').includes(' ' + kw.phrase + ' ') ? 1 : 0;
+    const hs = new Set(tokenize(p.heading || '').map(t => stem(t.w)));
+    const headHit = kw.terms.filter(t => hs.has(t)).length / kw.terms.length;
+    const ctxCov = ctx.length ? ctx.filter(t => p.stemSet.has(t.stem)).length / ctx.length : 0;
+    let raw = ctx.length
+      ? 0.42 * kwCov + 0.10 * ctxCov + 0.18 * prox + 0.12 * phrase + 0.18 * headHit
+      : 0.48 * kwCov + 0.20 * prox + 0.14 * phrase + 0.18 * headHit;
+    const lf = p.wc < 20 ? 0.35 : p.wc < 35 ? 0.75 : p.wc > 170 ? 0.9 : 1;
+    const pf = i === 0 ? 0.82 : (i === total - 1 && total > 3 ? 0.9 : 1);
+    let kf = p.hasLink ? 0.8 : 1;
+    if (targetHost && p.norm.includes(targetHost.split('.')[0]) && /\./.test(targetHost) && p.text.toLowerCase().includes(targetHost)) kf = 0.3;
+    p.present = present; p.prox = prox; p.phrase = phrase; p.headHit = headHit; p.ctxCov = ctxCov;
+    p.score = Math.max(0, Math.min(100, Math.round(raw * lf * pf * kf * 100)));
+  });
+}
+
+function findAnchor(p, kw, sent) {
+  const toks = p.toks, kwSet = new Set(kw.terms);
+  const maxN = Math.min(7, Math.max(5, kw.tokenCount));
+  let best = null;
+  for (let i = 0; i < toks.length; i++) {
+    for (let n = 1; n <= maxN && i + n <= toks.length; n++) {
+      let gapOk = true;
+      for (let k = i; k < i + n - 1; k++) {
+        if (!/^[\s\-'’]+$/.test(p.text.slice(toks[k].end, toks[k + 1].start))) { gapOk = false; break; }
+      }
+      if (!gapOk) break;
+      const first = toks[i], last = toks[i + n - 1];
+      if (STOP.has(first.w) || STOP.has(last.w) || first.w.length < 2 || last.w.length < 2) continue;
+      let inner = false;
+      for (let k = i + 1; k < i + n - 1; k++) { const w = toks[k].w; if (STOP.has(w) && !CONN.has(w)) { inner = true; break; } }
+      if (inner) continue;
+      let m = 0, core = 0;
+      for (let k = i; k < i + n; k++) {
+        if (CONN.has(toks[k].w)) continue;
+        core++;
+        if (kwSet.has(p.stems[k])) m++;
+      }
+      if (m === 0) continue;
+      const norm = toks.slice(i, i + n).map(t => t.w).join(' ');
+      const exact = norm === kw.phrase;
+      let score = 4 * m * Math.pow(m / core, 2) - 0.4 * Math.max(0, core - 4) - i * 0.0001;
+      if (exact) score += 10;
+      if (sent && first.start >= sent.start && last.end <= sent.end) score += 0.5;
+      if (!best || score > best.score) best = { text: p.text.slice(first.start, last.end), start: first.start, end: last.end, score, m, core, exact };
+    }
+  }
+  return best;
+}
+
+function bestSentence(p, kw, ctx) {
+  const sents = sentences(p.text);
+  let bi = -1, bs = -1;
+  sents.forEach((s, i) => {
+    const st = new Set(tokenize(s.text).map(t => stem(t.w)));
+    const sc = kw.terms.filter(t => st.has(t)).length + 0.5 * ctx.filter(t => st.has(t.stem)).length;
+    if (sc > bs) { bs = sc; bi = i; }
+  });
+  if (bs <= 0) bi = sents.length - 1;
+  return { sents, index: bi };
+}
+
+function tierFor(score) {
+  if (score >= 75) return { tier: 'strong', label: 'Strong fit', badge: 'Strong fit · Recommended' };
+  if (score >= 55) return { tier: 'good', label: 'Good fit', badge: 'Good fit · Worth using' };
+  if (score >= 35) return { tier: 'possible', label: 'Possible fit', badge: 'Possible fit · Review first' };
+  return { tier: 'weak', label: 'Weak fit', badge: 'Weak fit · Try another article' };
+}
+
+function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+
+function extractArticle(html, baseUrl) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const rawLinks = Array.from(doc.querySelectorAll('a[href]')).map(a => a.getAttribute('href'));
+  const h1 = doc.querySelector('h1');
+  let title = ((h1 && h1.textContent) || doc.title || '').replace(/\s+/g, ' ').trim();
+
+  doc.querySelectorAll('script,style,noscript,template,nav,footer,aside,form,svg,iframe,select,button').forEach(n => n.remove());
+  const noise = /(^|[\s_-])(comments?|sidebar|cookie|share|sharing|related|breadcrumbs?|newsletter|advert|promo)([\s_-]|$)/i;
+  Array.from(doc.querySelectorAll('[class],[id]')).forEach(n => {
+    if (['BODY', 'HTML', 'ARTICLE', 'MAIN'].includes(n.tagName)) return;
+    if (noise.test((n.getAttribute('class') || '') + ' ' + (n.id || ''))) n.remove();
+  });
+
+  const words = n => wordCount(n.textContent || '');
+  let root = doc.querySelector('article');
+  if (!root || words(root) < 150) root = doc.querySelector('main');
+  if (!root || words(root) < 150) root = doc.body;
+  if (!root) return { title, headings: [], paras: [], totalWords: 0, sections: 0, links: [] };
+
+  let heading = '';
+  const headings = [], paras = [];
+  root.querySelectorAll('h1,h2,h3,h4,p,li,blockquote').forEach(el => {
+    if (el.closest('[hidden],[aria-hidden="true"]')) return;
+    const tag = el.tagName.toLowerCase();
+    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    if (tag.charAt(0) === 'h') {
+      if (tag === 'h1') { if (!title) title = text; return; }
+      heading = text; headings.push(text); return;
+    }
+    if ((tag === 'li' || tag === 'blockquote') && el.querySelector('p,li,blockquote')) return;
+    if (wordCount(text) < 12) return;
+    const hasLink = !!el.querySelector('a[href]');
+    chunkText(text).forEach(c => { const p = buildPara(c, heading, hasLink); p.isLi = tag === 'li'; paras.push(p); });
+  });
+
+  // Prefer real paragraphs; use list items only when the page has almost no paragraphs.
+  let kept = paras;
+  if (paras.filter(p => !p.isLi).length >= 3) kept = paras.filter(p => !p.isLi);
+  let before = 0;
+  kept.forEach(p => { p.wcBefore = before; before += p.wc; });
+  return { title, headings, paras: kept, totalWords: before, sections: headings.length, links: rawLinks };
+}
+
+function linksToTarget(links, base, target) {
+  const norm = u => u.hostname.replace(/^www\./, '').toLowerCase() + u.pathname.replace(/\/+$/, '');
+  const want = norm(target);
+  return links.some(h => {
+    try { return norm(new URL(h, base)) === want; } catch (e) { return false; }
+  });
+}
+
+function escRe(x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function findExact(text, anchor) {
+  const pat = anchor.trim().split(/\s+/).map(escRe).join('\\s+');
+  const re = new RegExp('(^|[^\\p{L}\\p{N}])(' + pat + ')(?![\\p{L}\\p{N}])', 'iu');
+  const m = re.exec(text);
+  if (!m) return null;
+  const start = m.index + m[1].length;
+  return { text: m[2], start, end: start + m[2].length };
+}
+
+function analyze(inp) {
+  const anchor = inp.anchor.trim();
+  const kw = parseKeyword(anchor);
+  const targetHost = inp.target.hostname.replace(/^www\./, '').toLowerCase();
+  const brand = brandFrom(targetHost);
+  const ctx = urlTerms(inp.target).filter(t => !kw.terms.includes(t.stem));
+  const siteHost = inp.website.hostname.replace(/^www\./, '').toLowerCase();
+  const notes = [];
+  if (siteHost === targetHost || siteHost.endsWith('.' + targetHost)) {
+    notes.push({ kind: 'warn', text: 'This page is on the same domain as the target URL, so a link here would be an internal link, not a backlink.' });
+  }
+  const art = inp.art;
+  if (!art.paras.length) return { mode: 'error', message: 'No readable paragraphs were found on this page.' };
+  const raw = art.paras.map(p => p.text).join(' ');
+
+  const articleStems = new Set();
+  art.paras.forEach(p => p.stems.forEach(s => articleStems.add(s)));
+  const titleStems = new Set(tokenize(art.title || '').map(t => stem(t.w)));
+  const ctxPresent = ctx.filter(t => articleStems.has(t.stem));
+  scoreParas(art, kw, ctxPresent, targetHost);
+
+  const ranked = art.paras.map((p, i) => ({ p, i })).sort((a, b) => b.p.score - a.p.score || a.i - b.i);
+  let top = ranked[0];
+  // A paragraph that already contains the exact anchor text can take the link with no new wording.
+  const exactCand = ranked.find(r => !r.p.hasLink && findExact(r.p.text, anchor) && r.p.score >= Math.max(20, top.p.score - 25));
+  if (exactCand) top = exactCand;
+  const best = top.p;
+
+  const found = kw.terms.filter(t => articleStems.has(t) || titleStems.has(t));
+  const missing = kw.terms.filter(t => !found.includes(t));
+  const coverage = found.length / kw.terms.length;
+  let mentions = 0;
+  art.paras.forEach(p => p.stems.forEach(s => { if (kw.terms.includes(s)) mentions++; }));
+  const density = art.totalWords ? mentions / art.totalWords * 100 : 0;
+  const densityScaled = Math.min(1, density / 2.2);
+  let headCov = 0;
+  art.headings.concat(art.title ? [art.title] : []).forEach(h => {
+    const hs = new Set(tokenize(h).map(t => stem(t.w)));
+    headCov = Math.max(headCov, kw.terms.filter(t => hs.has(t)).length / kw.terms.length);
+  });
+  const score = Math.max(0, Math.min(100, Math.round(100 * (0.34 * coverage + 0.18 * densityScaled + 0.30 * (best.score / 100) + 0.18 * headCov))));
+  const topic = Math.round(100 * (0.65 * coverage + 0.35 * densityScaled));
+  const tr = tierFor(score);
+
+  // Sentence + insertion, always using the exact anchor text
+  const bs = bestSentence(best, kw, ctxPresent);
+  const exact = findExact(best.text, anchor);
+  const href = inp.target.href;
+  const anchorHtml = anchor.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let primary, insertion, sent;
+  if (exact) {
+    sent = bs.sents.find(s => exact.start >= s.start && exact.end <= s.end) || bs.sents[bs.index];
+    const sentIdx = bs.sents.indexOf(sent);
+    primary = {
+      text: anchor, type: 'Exact match',
+      why: 'Your exact anchor text already appears in this paragraph, so no new wording is needed.'
+    };
+    insertion = {
+      kind: 'link',
+      before: best.text.slice(0, exact.start), anchor: exact.text, after: best.text.slice(exact.end),
+      how: 'Link the words “' + exact.text + '” in sentence ' + (sentIdx + 1) + ' to your target URL. No new copy is needed.',
+      sentIdx: sentIdx + 1
+    };
+  } else {
+    sent = bs.sents[bs.index];
+    primary = {
+      text: anchor, type: 'Your anchor',
+      why: 'These exact words do not appear in this paragraph, so the anchor goes into one short added sentence.'
+    };
+    const templates = [
+      ['For more detail, this resource on ', ' is a useful next read.'],
+      ['If you want to compare options, this overview of ', ' covers the main points.'],
+      ['A practical guide to ', ' is available for readers who want to go further.']
+    ];
+    const tpl = templates[hashStr(anchor) % templates.length];
+    insertion = {
+      kind: 'sentence',
+      before: best.text.slice(0, sent.end), pre: tpl[0], anchor: anchor, post: tpl[1], after: best.text.slice(sent.end),
+      how: 'Add one sentence after sentence ' + (bs.index + 1) + ' and link the anchor inside it. Edit the wording to match the article’s voice.',
+      sentIdx: bs.index + 1
+    };
+  }
+
+  // Position
+  const pct = art.totalWords ? Math.round(best.wcBefore / art.totalWords * 100) : 0;
+  const posWord = pct < 20 ? 'near the start' : pct > 70 ? 'toward the end' : 'in the middle';
+  const sectionReal = !!best.heading;
+  const sectionLabel = best.heading || (art.headings.length ? 'Opening, before the first heading' : 'No section headings detected');
+
+  // Reasons
+  const reasons = [];
+  if (exact) reasons.push('The paragraph already contains your exact anchor text, so the link fits without new wording.');
+  else if (best.present.length) reasons.push('The paragraph mentions ' + best.present.length + ' of ' + kw.terms.length + ' words from your anchor text (' + best.present.map(t => kw.display[t]).join(', ') + ').');
+  if (best.headHit > 0 && sectionReal) reasons.push('It sits under “' + best.heading + '”, a section that covers the same topic.');
+  if (best.present.length > 1 && best.prox >= 0.7) reasons.push('The anchor words appear close together, which suggests the paragraph is about the topic itself and not a passing mention.');
+  if (best.wc >= 35 && best.wc <= 170) reasons.push('At ' + best.wc + ' words, the paragraph has enough room to hold a link without crowding it.');
+  if (!best.hasLink) reasons.push('No other link appears in this paragraph.');
+  if (best.ctxCov > 0 && ctxPresent.length) reasons.push('It also echoes terms from the target URL (' + ctxPresent.filter(t => best.stemSet.has(t.stem)).map(t => t.word).join(', ') + ').');
+  if (pct >= 15 && pct <= 85) reasons.push('It is in the body of the article, so a contextual link reads as part of the argument.');
+  if (!reasons.length) reasons.push('This is the closest match on the page, but the match is weak. Treat it as a starting point.');
+  reasons.length = Math.min(reasons.length, 5);
+
+  // Notes
+  if (linksToTarget(art.links || [], inp.website, inp.target)) notes.push({ kind: 'warn', text: 'This page already links to your target URL. Check whether another link is needed.' });
+  if (best.hasLink) notes.push({ kind: 'info', text: 'The best paragraph already contains a link. Check that a second link would not crowd it.' });
+  if (art.paras.some(p => p.text.toLowerCase().includes(targetHost))) notes.push({ kind: 'warn', text: 'The page already mentions the target domain. Check whether it already links to it.' });
+  if (score < 35) notes.push({ kind: 'warn', text: 'No paragraph discusses this topic closely. Consider a more relevant page.' });
+  else if (missing.length && missing.length >= kw.terms.length / 2) notes.push({ kind: 'info', text: 'The page never mentions: ' + missing.map(t => kw.display[t]).join(', ') + '. The topic overlap is partial.' });
+
+  // Runners-up
+  const runners = ranked.filter(r => r.p !== best).filter(r => r.p.score >= 20).slice(0, 3).map(r => ({
+    n: r.i + 1, section: r.p.heading || 'Opening', score: r.p.score,
+    snippet: r.p.text.length > 190 ? r.p.text.slice(0, 187).replace(/\s+\S*$/, '') + '…' : r.p.text
+  }));
+
+  return {
+    mode: 'full', score, tier: tr.tier, tierLabel: tr.label, badge: tr.badge, topic, placement: best.score,
+    termsFound: found.length + ' of ' + kw.terms.length,
+    kw: anchor, brand, href,
+    termChips: kw.terms.map(t => ({ word: kw.display[t], found: found.includes(t) })),
+    ctxChips: ctx.map(t => ({ word: t.word, found: articleStems.has(t.stem) })),
+    article: {
+      title: art.title || '', host: siteHost, url: inp.website.href,
+      words: art.totalWords, paras: art.paras.length, sections: art.sections,
+      readMin: Math.max(1, Math.ceil(art.totalWords / 220)), mentions, density: Math.round(density * 10) / 10
+    },
+    best: { n: top.i + 1, total: art.paras.length, section: sectionLabel, sectionReal, pct, posWord, sentIdx: insertion.sentIdx, sentTotal: bs.sents.length, wc: best.wc },
+    insertion, primary, alts: [], reasons, notes, runners,
+    linkHtml: '<a href="' + href.replace(/"/g, '&quot;') + '">' + anchorHtml + '</a>'
+  };
+}
+/* ENGINE:END */
+
+/* ---------- 3. THEME SYSTEM ---------- */
+const FIELDS = [
+  ['primary', 'Primary color', '--primary'], ['secondary', 'Secondary color', '--secondary'],
+  ['accent', 'Accent color', '--accent'], ['bg', 'Background color', '--bg'],
+  ['card', 'Card color', '--card'], ['text', 'Text color', '--text'],
+  ['border', 'Border color', '--border'], ['btn', 'Button color', '--btn'],
+  ['btnText', 'Button text color', '--btn-text']
+];
+const P = (primary, secondary, accent, bg, card, text, border, btn, btnText) => ({ primary, secondary, accent, bg, card, text, border, btn, btnText });
+const PRESETS = {
+  midnight: { name: 'Midnight',
+    light: P('#3B4FD9', '#5A6786', '#E08A00', '#F4F5FA', '#FFFFFF', '#131A33', '#DDE1EE', '#3B4FD9', '#FFFFFF'),
+    dark: P('#7C8CFF', '#9AA7C7', '#FFB547', '#0A0F1F', '#111830', '#E8ECF8', '#243050', '#7C8CFF', '#0A0F1F') },
+  ocean: { name: 'Ocean',
+    light: P('#0B7BAE', '#4B7385', '#D98E1F', '#EFF6F9', '#FFFFFF', '#0C2A38', '#CFE2EA', '#0B7BAE', '#FFFFFF'),
+    dark: P('#38BDF8', '#7DA4B8', '#F2C879', '#071A24', '#0D2733', '#E4F3F9', '#1C4152', '#38BDF8', '#04202D') },
+  emerald: { name: 'Emerald',
+    light: P('#0F8A5F', '#55796B', '#C98A0B', '#F1F7F3', '#FFFFFF', '#0F2A20', '#D3E5DA', '#0F8A5F', '#FFFFFF'),
+    dark: P('#34D399', '#8DB5A4', '#F4C95D', '#07150F', '#0E241A', '#E3F5EC', '#1D4030', '#34D399', '#05241A') },
+  royal: { name: 'Royal',
+    light: P('#6A3FD6', '#6F5FA0', '#C4880A', '#F6F3FC', '#FFFFFF', '#1E1442', '#E2DAF2', '#6A3FD6', '#FFFFFF'),
+    dark: P('#A78BFA', '#A59BC8', '#E9C46A', '#100B24', '#191338', '#EEE9FB', '#302656', '#A78BFA', '#140C2E') },
+  graphite: { name: 'Graphite',
+    light: P('#1F2328', '#6B7280', '#D9560B', '#F5F5F4', '#FFFFFF', '#17181B', '#E3E3E0', '#1F2328', '#FFFFFF'),
+    dark: P('#E5E7EB', '#9CA3AF', '#F97316', '#0F1012', '#17181B', '#ECEDEF', '#2A2C31', '#ECEDEF', '#0F1012') }
+};
+const PRESET_ORDER = ['midnight', 'ocean', 'emerald', 'royal', 'graphite', 'custom'];
+const KEY_MODE = 'linkmetrics:mode';
+const KEY_THEME = 'linkmetrics:theme';
+const root = document.documentElement;
+
+const state = { mode: 'light', preset: 'midnight', base: 'midnight', custom: { light: {}, dark: {} } };
+
+function systemMode() { return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+function paletteFor(mode, preset) {
+  preset = preset || state.preset;
+  if (preset === 'custom') return Object.assign({}, PRESETS[state.base][mode], state.custom[mode] || {});
+  return PRESETS[preset][mode];
+}
+function hasCustom() { return Object.keys(state.custom.light).length + Object.keys(state.custom.dark).length > 0; }
+function saveTheme() { store.set(KEY_THEME, JSON.stringify({ preset: state.preset, base: state.base, custom: state.custom })); }
+
+function applyTheme() {
+  const pal = paletteFor(state.mode);
+  root.setAttribute('data-theme', state.mode);
+  root.style.colorScheme = state.mode;
+  FIELDS.forEach(f => root.style.setProperty(f[2], pal[f[0]]));
+  const modeBtn = $('#btnMode');
+  modeBtn.setAttribute('aria-pressed', String(state.mode === 'dark'));
+  modeBtn.setAttribute('aria-label', state.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+  $('#modeIcon use').setAttribute('href', state.mode === 'dark' ? '#i-sun' : '#i-moon');
+  syncThemeUi();
+}
+
+function loadTheme() {
+  const m = store.get(KEY_MODE);
+  state.mode = m === 'dark' || m === 'light' ? m : systemMode();
+  try {
+    const t = JSON.parse(store.get(KEY_THEME) || 'null');
+    if (t && (PRESETS[t.preset] || t.preset === 'custom')) {
+      state.preset = t.preset;
+      if (PRESETS[t.base]) state.base = t.base;
+      const clean = o => { const r = {}; FIELDS.forEach(f => { if (o && /^#[0-9a-f]{6}$/i.test(o[f[0]])) r[f[0]] = o[f[0]].toLowerCase(); }); return r; };
+      state.custom = { light: clean(t.custom && t.custom.light), dark: clean(t.custom && t.custom.dark) };
+    }
+  } catch (e) { /* ignore corrupt saved theme */ }
+}
+
+function buildThemeUi() {
+  $('#presets').innerHTML = PRESET_ORDER.map(id => {
+    const name = id === 'custom' ? 'Custom' : PRESETS[id].name;
+    return '<button type="button" class="preset" data-preset="' + id + '" aria-pressed="false"><div class="pv" aria-hidden="true"></div><span>' + name + '</span></button>';
+  }).join('');
+  $('#colorRows').innerHTML = FIELDS.map(f =>
+    '<div class="crow"><label for="c-' + f[0] + '">' + f[1] + '</label>' +
+    '<input type="color" id="c-' + f[0] + '" data-field="' + f[0] + '" aria-label="' + f[1] + ' picker">' +
+    '<input class="input" type="text" id="h-' + f[0] + '" data-hex="' + f[0] + '" maxlength="7" spellcheck="false" aria-label="' + f[1] + ' hex value"></div>'
+  ).join('');
+}
+
+function syncThemeUi() {
+  const pal = paletteFor(state.mode);
+  FIELDS.forEach(f => {
+    const c = $('#c-' + f[0]), h = $('#h-' + f[0]);
+    if (c && c.value.toLowerCase() !== pal[f[0]].toLowerCase()) c.value = pal[f[0]];
+    if (h && document.activeElement !== h) h.value = pal[f[0]];
+  });
+  $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+  $$('#presets .preset').forEach(b => {
+    const id = b.dataset.preset;
+    b.setAttribute('aria-pressed', String(id === state.preset));
+    const p = id === 'custom' ? (state.preset === 'custom' ? pal : (hasCustom() ? paletteFor(state.mode, 'custom') : pal)) : PRESETS[id][state.mode];
+    $('.pv', b).style.background = p.bg;
+    $('.pv', b).innerHTML = '<i style="background:' + p.card + ';border:1px solid ' + p.border + '"></i><div class="dots"><b style="background:' + p.primary + '"></b><b style="background:' + p.secondary + '"></b><b style="background:' + p.accent + '"></b></div>';
+  });
+}
+
+function setField(field, value) {
+  if (state.preset !== 'custom') {
+    state.base = state.preset;
+    state.preset = 'custom';
+    state.custom = { light: {}, dark: {} };
+  }
+  state.custom[state.mode][field] = value.toLowerCase();
+  applyTheme(); saveTheme();
+}
+
+function setPreset(id) {
+  if (id === 'custom') {
+    if (state.preset === 'custom') return;
+    if (!hasCustom()) state.base = state.preset;
+    state.preset = 'custom';
+  } else {
+    state.preset = id;
+  }
+  applyTheme(); saveTheme();
+}
+
+function setMode(mode) { state.mode = mode; store.set(KEY_MODE, mode); applyTheme(); }
+
+function resetTheme() {
+  state.preset = 'midnight'; state.base = 'midnight'; state.custom = { light: {}, dark: {} };
+  store.del(KEY_THEME);
+  applyTheme();
+  toast('Theme reset to Midnight', 'ok');
+}
+
+function expandHex(v) {
+  v = String(v).trim().replace(/^#/, '');
+  if (/^[0-9a-f]{3}$/i.test(v)) v = v.split('').map(c => c + c).join('');
+  return /^[0-9a-f]{6}$/i.test(v) ? '#' + v.toLowerCase() : null;
+}
+
+/* ---------- 4. OVERLAYS + TOAST ---------- */
+const Overlay = (function () {
+  let current = null, last = null;
+  function open(id, trigger) {
+    if (current) close(true);
+    const el = document.getElementById(id);
+    if (!el) return;
+    last = trigger || document.activeElement;
+    el.classList.add('open'); el.setAttribute('aria-hidden', 'false');
+    root.classList.add('lock');
+    current = el;
+    const target = $('[data-autofocus]', el) || $('[role="dialog"]', el);
+    setTimeout(function () { if (target) target.focus(); }, 40);
+  }
+  function close(silent) {
+    if (!current) return;
+    current.classList.remove('open'); current.setAttribute('aria-hidden', 'true');
+    root.classList.remove('lock');
+    const l = last; current = null;
+    if (!silent && l && l.focus) l.focus();
+  }
+  document.addEventListener('keydown', function (e) {
+    if (!current) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key === 'Tab') {
+      const f = $$('a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])', current).filter(x => x.offsetParent !== null || x === document.activeElement);
+      if (!f.length) return;
+      const first = f[0], lastEl = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === current.querySelector('[role="dialog"]'))) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); first.focus(); }
+    }
+  });
+  return { open: open, close: close };
+})();
+
+let toastTimer = null;
+function toast(msg, kind) {
+  const t = $('#toast');
+  t.className = 'toast ' + (kind || '');
+  t.innerHTML = icon(kind === 'err' ? 'alert' : 'check') + '<span>' + esc(msg) + '</span>';
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2400);
+}
+
+const copyStore = new Map();
+let copyId = 0;
+function keepCopy(text) { const k = 'c' + (++copyId); copyStore.set(k, text); return k; }
+function copyText(text) {
+  const fallback = function () {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    ok ? toast('Copied to clipboard', 'ok') : toast('Copy was blocked. Select the text and copy it manually.', 'err');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { toast('Copied to clipboard', 'ok'); }, fallback);
+  } else { fallback(); }
+}
+
+/* ---------- 5. RENDERING ---------- */
+function emptyState() {
+  return '<div class="panel empty">' +
+    '<svg class="art" viewBox="0 0 260 150" role="img" aria-label="Illustration of a paragraph with one highlighted line">' +
+    '<rect class="l-line" x="20" y="18" width="150" height="8" rx="4"/><rect class="l-line" x="20" y="38" width="220" height="8" rx="4"/>' +
+    '<rect class="l-line" x="20" y="58" width="196" height="8" rx="4"/>' +
+    '<rect class="l-hi" x="20" y="76" width="186" height="14" rx="5"/><rect class="l-hi-bar" x="20" y="88" width="186" height="2" rx="1"/>' +
+    '<rect class="l-line" x="20" y="102" width="210" height="8" rx="4"/><rect class="l-line" x="20" y="122" width="120" height="8" rx="4"/>' +
+    '<g transform="translate(212 62)"><rect class="l-chip" width="32" height="32" rx="10"/>' +
+    '<path class="l-chip-i" d="M13.5 18.6a3.6 3.6 0 0 0 5 .3l2.6-2.6a3.6 3.6 0 0 0-5.1-5.1l-.8.8M18.5 13.4a3.6 3.6 0 0 0-5-.3l-2.6 2.6a3.6 3.6 0 0 0 5.1 5.1l.8-.8"/></g></svg>' +
+    '<h2>Your placement analysis appears here</h2>' +
+    '<p>Add the website URL, your anchor text and the target URL, then choose Find placement.</p>' +
+    '<ul><li>' + icon('target') + 'A relevance score and a clear recommendation</li>' +
+    '<li>' + icon('para') + 'The best section and paragraph for the link</li>' +
+    '<li>' + icon('type') + 'Anchor text options and a natural way to place them</li></ul></div>';
+}
+
+function ringHtml(score) {
+  const R = 54, C = 2 * Math.PI * R, off = C * (1 - score / 100);
+  return '<div class="ring" style="--c:' + C.toFixed(1) + '" role="img" aria-label="Relevance score ' + score + ' out of 100"><svg viewBox="0 0 132 132" aria-hidden="true">' +
+    '<circle class="ring-bg" cx="66" cy="66" r="54"/>' +
+    '<circle class="ring-fg" cx="66" cy="66" r="54" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 66 66)"/></svg>' +
+    '<div class="ring-num"><strong>' + score + '</strong><span>of 100</span></div></div>';
+}
+
+function copyBtn(text, label) {
+  return '<button type="button" class="copy" data-copy="' + keepCopy(text) + '" aria-label="' + esc(label) + '" title="' + esc(label) + '">' + icon('copy', 'sm') + '</button>';
+}
+
+function summaryText(r) {
+  const L = [];
+  L.push('LinkMetrics by Asma Amir');
+  L.push('Relevance score: ' + r.score + '/100 (' + r.tierLabel + ')');
+  L.push('Anchor text: ' + r.kw);
+  if (r.mode === 'full') {
+    L.push('Section: ' + r.best.section);
+    L.push('Paragraph: ' + r.best.n + ' of ' + r.best.total);
+  }
+  L.push('Anchor text used: ' + r.primary.text + ' (' + r.primary.type + ')');
+  L.push('Link: ' + r.linkHtml);
+  if (r.mode === 'full') L.push('How: ' + r.insertion.how);
+  L.push('Review every suggestion before using it.');
+  return L.join('\n');
+}
+
+function renderResult(r, isExample) {
+  const out = [];
+  const tierCls = 'tier-' + r.tier;
+
+  out.push('<div class="res-head"><h2>Analysis</h2><div class="tools">' +
+    (isExample ? '<span class="chip ex">Example data</span>' : '') +
+    '<button type="button" class="btn ghost sm" data-copy="' + keepCopy(summaryText(r)) + '">' + icon('copy', 'sm') + 'Copy summary</button></div></div>');
+
+  // Recommendation
+  let headline, eyebrow;
+  if (r.mode === 'full') {
+    eyebrow = r.tier === 'weak' ? 'Closest match' : 'Top recommendation';
+    headline = (r.tier === 'weak' ? 'The closest paragraph is number ' : 'Add the link in paragraph ') + r.best.n +
+      (r.best.sectionReal ? ' under “' + esc(r.best.section) + '”' : '');
+  } else {
+    eyebrow = 'Preliminary estimate';
+    headline = 'Paste the article text to find the exact paragraph';
+  }
+  const sumLine = r.mode === 'full'
+    ? 'Anchor text: “' + esc(r.primary.text) + '”. ' + esc(r.reasons[0])
+    : esc(r.reasons[0]);
+  out.push('<article class="card rec ' + tierCls + '" aria-label="Recommendation">' + ringHtml(r.score) +
+    '<div style="min-width:0"><span class="badge">' + icon('check', 'sm') + esc(r.badge) + '</span>' +
+    '<div class="eyebrow" style="margin-top:12px;color:var(--muted)">' + eyebrow + '</div>' +
+    '<h3 style="margin-top:4px">' + headline + '</h3><p class="sum">' + sumLine + '</p>' +
+    '<div class="stats"><div class="stat"><b>' + r.topic + '%</b><span>Topic match</span></div>' +
+    '<div class="stat"><b>' + (r.mode === 'full' ? r.placement + '%' : 'n/a') + '</b><span>Placement fit</span></div>' +
+    '<div class="stat"><b>' + esc(r.termsFound) + '</b><span>Anchor words found</span></div></div></div></article>');
+
+  // Notes
+  if (r.notes.length) {
+    out.push('<div class="notes">' + r.notes.map(n => '<div class="note ' + n.kind + '">' + icon(n.kind === 'warn' ? 'alert' : 'info') + '<span>' + esc(n.text) + '</span></div>').join('') + '</div>');
+  }
+
+  // Insertion preview
+  if (r.mode === 'full') {
+    const ins = r.insertion;
+    let body;
+    if (ins.kind === 'link') {
+      body = esc(ins.before) + '<mark class="anchor">' + esc(ins.anchor) + '</mark>' + esc(ins.after);
+    } else {
+      body = esc(ins.before) + ' <span class="ins">' + esc(ins.pre) + '<mark class="anchor">' + esc(ins.anchor) + '</mark>' + esc(ins.post) + '</span>' + (ins.after ? ' ' + esc(ins.after.trim()) : '');
+    }
+    out.push('<article class="card" aria-label="Natural insertion suggestion"><div class="card-top"><div class="card-title">' + icon('link') + 'Natural insertion</div>' +
+      '<span class="chip">' + (ins.kind === 'link' ? 'Link existing words' : 'Add one sentence') + '</span></div>' +
+      '<div class="paper"><div class="paper-sec">' + icon('layers', 'sm') + esc(r.best.sectionReal ? r.best.section : r.best.section) + '</div><p class="paper-text">' + body + '</p></div>' +
+      '<div class="legend"><span><i class="sw a"></i>Anchor text (the link)</span>' + (ins.kind === 'sentence' ? '<span><i class="sw i"></i>New sentence to add</span>' : '') + '</div>' +
+      '<p class="how"><b>How to place it:</b> ' + esc(ins.how) + '</p>' +
+      '<div class="code-row"><div class="code" tabindex="0" aria-label="Link HTML">' + esc(r.linkHtml) + '</div>' +
+      '<button type="button" class="btn ghost sm" data-copy="' + keepCopy(r.linkHtml) + '">' + icon('copy', 'sm') + 'Copy link HTML</button></div></article>');
+  } else {
+    out.push('<article class="card"><div class="card-top"><div class="card-title">' + icon('link') + 'Natural insertion</div></div>' +
+      '<p class="how" style="margin-top:0">Look for the paragraph that discusses <b>' + esc(r.kw) + '</b> in the article. Link the words that already name the topic, or add one short sentence that points to the client’s page.</p>' +
+      '<div class="code-row"><div class="code" tabindex="0" aria-label="Link HTML">' + esc(r.linkHtml) + '</div>' +
+      '<button type="button" class="btn ghost sm" data-copy="' + keepCopy(r.linkHtml) + '">' + icon('copy', 'sm') + 'Copy link HTML</button></div></article>');
+  }
+
+  // Detail grid
+  const chips = r.termChips.map(c => '<span class="tag ' + (c.found ? '' : 'miss') + '">' + icon(c.found ? 'check' : 'x') + esc(c.word) + '</span>').join('');
+  const ctxChips = r.ctxChips.length ? '<div class="small-label">From the target URL</div><div class="chips" style="margin-top:6px">' + r.ctxChips.map(c => '<span class="tag ctx">' + esc(c.word) + (c.found ? '' : ' (not found)') + '</span>').join('') + '</div>' : '';
+  const relCard = '<article class="card ' + tierCls + '"><div class="card-title">' + icon('target') + 'Topic &amp; context match</div>' +
+    '<div class="meter-row"><span>Topic match</span><b>' + r.topic + '%</b></div><div class="meter" role="img" aria-label="Topic match ' + r.topic + ' percent"><i style="width:' + r.topic + '%"></i></div>' +
+    '<div class="small-label">Anchor words (found or missing)</div><div class="chips" style="margin-top:6px">' + chips + '</div>' + ctxChips + '</article>';
+
+  const a = r.article;
+  const rows = [];
+  rows.push('<div><dt>Page title</dt><dd>' + (a.title ? esc(a.title) : '<span style="color:var(--muted)">Not detected</span>') + '</dd></div>');
+  rows.push('<div><dt>Source</dt><dd>' + esc(a.host) + '</dd></div>');
+  if (r.mode === 'full') {
+    rows.push('<div><dt>Length</dt><dd>' + a.words.toLocaleString('en-US') + ' words, ' + a.paras + ' paragraphs</dd></div>');
+    rows.push('<div><dt>Sections</dt><dd>' + (a.sections ? a.sections + ' with headings' : 'No headings detected') + '</dd></div>');
+    rows.push('<div><dt>Reading time</dt><dd>About ' + a.readMin + ' min</dd></div>');
+    rows.push('<div><dt>Topic mentions</dt><dd>' + a.mentions + ' (' + a.density + ' per 100 words)</dd></div>');
+  } else {
+    rows.push('<div><dt>Address</dt><dd class="mono" style="font-size:12.5px">' + esc(a.url) + '</dd></div>');
+    rows.push('<div><dt>Content</dt><dd>Not available</dd></div>');
+  }
+  const infoCard = '<article class="card"><div class="card-title">' + icon('file') + 'Article information</div><dl class="kv">' + rows.join('') + '</dl></article>';
+
+  let placeCard;
+  if (r.mode === 'full') {
+    const b = r.best;
+    placeCard = '<article class="card"><div class="card-title">' + icon('pin') + 'Best placement</div><dl class="kv">' +
+      '<div><dt>Section</dt><dd>' + esc(b.section) + '</dd></div>' +
+      '<div><dt>Paragraph</dt><dd>' + b.n + ' of ' + b.total + ' (' + b.wc + ' words)</dd></div>' +
+      '<div><dt>Sentence</dt><dd>' + b.sentIdx + ' of ' + b.sentTotal + '</dd></div>' +
+      '<div><dt>Position</dt><dd>About ' + b.pct + '% in, ' + b.posWord + '</dd></div></dl></article>';
+  } else {
+    placeCard = '<article class="card"><div class="card-title">' + icon('pin') + 'Best placement</div>' +
+      '<p class="hint" style="font-size:14px">Section and paragraph appear here once you paste the article text.</p></article>';
+  }
+
+  const alts = r.alts.length ? '<div class="alts">' + r.alts.map(x => '<div class="alt"><div><span class="type">' + esc(x.type) + '</span><b>' + esc(x.text) + '</b></div>' + copyBtn(x.text, 'Copy ' + x.text) + '</div>').join('') + '</div>' : '';
+  const anchorCard = '<article class="card"><div class="card-title">' + icon('type') + 'Anchor text</div>' +
+    '<div class="anchor-main"><div style="min-width:0"><span class="type">' + esc(r.primary.type) + '</span><strong>' + esc(r.primary.text) + '</strong></div>' + copyBtn(r.primary.text, 'Copy anchor text') + '</div>' +
+    '<p class="why">' + esc(r.primary.why) + '</p>' + alts + '</article>';
+
+  out.push('<div class="grid2">' + relCard + infoCard + placeCard + anchorCard + '</div>');
+
+  // Reasons
+  out.push('<article class="card"><div class="card-title">' + icon('list') + 'Why the backlink fits here</div><ul class="reasons">' +
+    r.reasons.map(x => '<li>' + icon('check') + '<span>' + esc(x) + '</span></li>').join('') + '</ul></article>');
+
+  // Runners-up
+  if (r.runners && r.runners.length) {
+    out.push('<article class="card"><div class="card-title">' + icon('para') + 'Other possible placements</div><div class="runners">' +
+      r.runners.map(x => '<div class="runner"><div style="min-width:0"><b>Paragraph ' + x.n + ' &middot; ' + esc(x.section) + '</b><p>' + esc(x.snippet) + '</p></div><span class="sc" title="Placement fit">' + x.score + '</span></div>').join('') + '</div></article>');
+  }
+
+  out.push('<p class="disclaimer">These are recommendations based on the text provided. Review them before you use them.</p>');
+  return out.join('');
+}
+
+/* ---------- 6. FORM + WIRING ---------- */
+const el = {
+  form: $('#finder'), website: $('#websiteUrl'), anchor: $('#anchorText'), target: $('#targetUrl'),
+  results: $('#results'), live: $('#live'), run: $('#btnRun')
+};
+
+function setError(fieldId, input, msg) {
+  const box = $('#' + fieldId);
+  const err = $('.err span', box);
+  if (msg) {
+    box.classList.add('has-error');
+    if (input) input.setAttribute('aria-invalid', 'true');
+    if (err) err.textContent = msg;
+  } else {
+    box.classList.remove('has-error');
+    if (input) input.removeAttribute('aria-invalid');
+    if (err) err.textContent = '';
+  }
+}
+function clearErrors() {
+  setError('f-website', el.website, ''); setError('f-anchor', el.anchor, ''); setError('f-target', el.target, '');
+}
+
+function validate() {
+  clearErrors();
+  const problems = [];
+  const w = el.website.value.trim(), a = el.anchor.value.trim(), t = el.target.value.trim();
+  let website = null, target = null;
+
+  if (!w) { setError('f-website', el.website, 'Enter the website URL where you want the link.'); problems.push(el.website); }
+  else { website = normalizeUrl(w); if (!website) { setError('f-website', el.website, 'That does not look like a valid web address. Try a full URL such as https://publisher.com/article.'); problems.push(el.website); } }
+
+  if (!a) { setError('f-anchor', el.anchor, 'Enter the anchor text you want to use.'); problems.push(el.anchor); }
+  else if (a.length < 2) { setError('f-anchor', el.anchor, 'Use at least two characters.'); problems.push(el.anchor); }
+  else if (a.length > 100) { setError('f-anchor', el.anchor, 'Keep the anchor text under 100 characters.'); problems.push(el.anchor); }
+  else if (!tokenize(a).length) { setError('f-anchor', el.anchor, 'The anchor text needs at least one letter or number.'); problems.push(el.anchor); }
+
+  if (!t) { setError('f-target', el.target, 'Enter the target URL the anchor text should link to.'); problems.push(el.target); }
+  else { target = normalizeUrl(t); if (!target) { setError('f-target', el.target, 'That does not look like a valid web address. Try a full URL such as https://example.com/page.'); problems.push(el.target); } }
+
+  return { problems, values: { website, anchor: a, target } };
+}
+
+function showEmpty() {
+  el.results.classList.remove('fade');
+  el.results.innerHTML = emptyState();
+}
+
+function showNotice(title, lines) {
+  copyStore.clear();
+  el.results.innerHTML =
+    '<div class="res-head"><h2>Analysis</h2></div>' +
+    '<div class="notes"><div class="note warn">' + icon('alert') + '<span>' + esc(title) + '</span></div></div>' +
+    '<article class="card"><div class="card-title">' + icon('info') + 'What this means</div>' +
+    lines.map(function (l, n) { return '<p class="how"' + (n === 0 ? ' style="margin-top:0"' : '') + '>' + esc(l) + '</p>'; }).join('') + '</article>';
+  el.results.classList.remove('fade'); void el.results.offsetWidth; el.results.classList.add('fade');
+  el.live.textContent = title;
+  if (window.matchMedia('(max-width: 999px)').matches) {
+    el.results.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+  }
+}
+
+async function fetchPage(u) {
+  const ctl = new AbortController();
+  const timer = setTimeout(function () { ctl.abort(); }, 20000);
+  const fail = function (kind, status) { const err = new Error(kind); err.kind = kind; if (status) err.status = status; return err; };
+  try {
+    // 1) Free fetch endpoint (works when this page is hosted with the Worker)
+    if (/^https?:$/.test(location.protocol)) {
+      let pr = null;
+      try { pr = await fetch('/api/fetch-page?url=' + encodeURIComponent(u.href), { signal: ctl.signal, credentials: 'omit' }); } catch (e) { pr = null; }
+      if (pr && pr.headers.get('x-linkmetrics-proxy')) {
+        if (pr.ok) return await pr.text();
+        let info = {}; try { info = await pr.json(); } catch (e) {}
+        throw fail(info.kind || 'blocked', info.status);
+      }
+    }
+    // 2) Direct browser request (only works if the site allows CORS)
+    let res;
+    try { res = await fetch(u.href, { method: 'GET', mode: 'cors', credentials: 'omit', redirect: 'follow', signal: ctl.signal }); }
+    catch (e) { throw fail(e && e.name === 'AbortError' ? 'timeout' : 'blocked'); }
+    if (!res.ok) throw fail('http', res.status);
+    const type = (res.headers.get('content-type') || '').toLowerCase();
+    if (type && !/html|xml|text\//.test(type)) throw fail('type');
+    return (await res.text()).slice(0, 3000000);
+  } catch (e) {
+    if (e && e.kind) throw e;
+    throw fail(e && e.name === 'AbortError' ? 'timeout' : 'blocked');
+  } finally { clearTimeout(timer); }
+}
+
+function reportFetchError(err, website) {
+  const mixed = location.protocol === 'https:' && website.protocol === 'http:';
+  if (err.kind === 'http') {
+    showNotice('The website answered with an error (HTTP ' + err.status + ').', [
+      'LinkMetrics could not read the page, so no result was generated. Check that the URL opens in your browser and try again.'
+    ]);
+  } else if (err.kind === 'type') {
+    showNotice('That URL does not return a web page.', [
+      'LinkMetrics can only analyze HTML pages. No result was generated.'
+    ]);
+  } else if (err.kind === 'timeout') {
+    showNotice('The website took too long to respond.', [
+      'LinkMetrics gave up after 20 seconds, so no result was generated. Try again, or check that the page loads normally in your browser.'
+    ]);
+  } else {
+    showNotice('LinkMetrics could not read this page from your browser.', [
+      mixed
+        ? 'This tool is open over HTTPS and the page uses plain HTTP, which browsers block. No result was generated.'
+        : 'Most likely the website does not allow other sites to read its pages (a browser security rule called CORS), or it could not be reached. No result was generated, because LinkMetrics will not guess at content it cannot see.',
+      'LinkMetrics is free and runs only in your browser, with no server or paid proxy in between, so it can only analyze pages that allow cross-site reading. Check the address for typos, or try a page on a site that allows it.'
+    ]);
+  }
+  toast('Could not read the page', 'err');
+}
+
+let busy = false;
+function setBusy(on) {
+  busy = on;
+  el.run.disabled = on;
+  el.run.setAttribute('aria-busy', String(on));
+  el.run.style.opacity = on ? '.7' : '';
+  el.run.innerHTML = icon('search') + (on ? 'Reading page…' : 'Find placement');
+}
+
+async function run() {
+  if (busy) return;
+  const v = validate();
+  if (v.problems.length) {
+    v.problems[0].focus();
+    toast('Fix the highlighted fields to continue', 'err');
+    return;
+  }
+  const vals = v.values;
+  setBusy(true);
+  el.live.textContent = 'Reading the page.';
+  let html;
+  try { html = await fetchPage(vals.website); }
+  catch (err) { setBusy(false); reportFetchError(err, vals.website); return; }
+  setBusy(false);
+
+  const art = extractArticle(html, vals.website);
+  if (art.paras.length < 2 || art.totalWords < 80) {
+    showNotice('The page was read, but it contains too little article text to analyze.', [
+      'Some sites load their text with JavaScript after the page opens. A browser-only tool cannot see that text, so no result was generated.'
+    ]);
+    return;
+  }
+  const r = analyze({ website: vals.website, anchor: vals.anchor, target: vals.target, art: art });
+  if (r.mode === 'error') { showNotice(r.message, ['No result was generated.']); return; }
+  copyStore.clear();
+  el.results.innerHTML = renderResult(r, false);
+  el.results.classList.remove('fade'); void el.results.offsetWidth; el.results.classList.add('fade');
+  el.live.textContent = 'Analysis complete. Relevance score ' + r.score + ' out of 100. ' + r.tierLabel + '.';
+  toast('Analysis ready', 'ok');
+  if (window.matchMedia('(max-width: 999px)').matches) {
+    el.results.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+  }
+}
+
+function clearAll() {
+  el.website.value = ''; el.anchor.value = ''; el.target.value = '';
+  clearErrors(); copyStore.clear(); showEmpty();
+  el.live.textContent = 'Form cleared.';
+  el.website.focus();
+}
+
+/* Events */
+el.form.addEventListener('submit', function (e) { e.preventDefault(); run(); });
+$('#btnClear').addEventListener('click', clearAll);
+[el.website, el.anchor, el.target].forEach(function (i) {
+  i.addEventListener('input', function () {
+    i.removeAttribute('aria-invalid');
+    const grp = i.closest('.field'); if (grp) grp.classList.remove('has-error');
+  });
+});
+
+$('#btnTheme').addEventListener('click', function (e) { Overlay.open('ov-theme', e.currentTarget); });
+$('#btnMode').addEventListener('click', function () { setMode(state.mode === 'dark' ? 'light' : 'dark'); });
+$('#btnReset').addEventListener('click', resetTheme);
+
+document.addEventListener('click', function (e) {
+  const open = e.target.closest('[data-open]');
+  if (open) { Overlay.open(open.dataset.open, open); return; }
+  if (e.target.closest('[data-close]')) { Overlay.close(); return; }
+  const cp = e.target.closest('[data-copy]');
+  if (cp) { const txt = copyStore.get(cp.dataset.copy); if (txt) copyText(txt); return; }
+  const pr = e.target.closest('[data-preset]');
+  if (pr) { setPreset(pr.dataset.preset); return; }
+  const md = e.target.closest('#modeSeg [data-mode]');
+  if (md) { setMode(md.dataset.mode); }
+});
+
+document.addEventListener('input', function (e) {
+  const c = e.target.closest && e.target.closest('input[data-field]');
+  if (c) { setField(c.dataset.field, c.value); return; }
+  const h = e.target.closest && e.target.closest('input[data-hex]');
+  if (h) {
+    const hx = expandHex(h.value);
+    h.style.borderColor = hx || (h.value ? 'var(--bad)' : '');
+    if (hx) setField(h.dataset.hex, hx);
+  }
+});
+document.addEventListener('focusout', function (e) {
+  const h = e.target.closest && e.target.closest('input[data-hex]');
+  if (h) { h.style.borderColor = ''; h.value = paletteFor(state.mode)[h.dataset.hex]; }
+});
+
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onSys = function () { if (!store.get(KEY_MODE)) { state.mode = systemMode(); applyTheme(); } };
+  if (mq.addEventListener) mq.addEventListener('change', onSys);
+}
+
+/* Init */
+buildThemeUi();
+loadTheme();
+applyTheme();
+showEmpty();
+})();
+</script>
+
+</body></html>
